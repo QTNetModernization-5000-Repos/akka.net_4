@@ -1,0 +1,111 @@
+﻿//-----------------------------------------------------------------------
+// <copyright file="ListenerSpec.cs" company="Akka.NET Project">
+//     Copyright (C) 2009-2022 Lightbend Inc. <http://www.lightbend.com>
+//     Copyright (C) 2013-2025 .NET Foundation <https://github.com/akkadotnet/akka.net>
+// </copyright>
+//-----------------------------------------------------------------------
+
+using Akka.Actor;
+using Akka.Routing;
+using Akka.TestKit;
+using Akka.Util.Internal;
+using Xunit;
+
+namespace Akka.Tests.Routing
+{
+    
+    public class ListenerSpec : AkkaSpec
+    {
+        [Fact]
+        public void Listener_must_listen_in()
+        {
+            //arrange
+            var fooLatch = new TestLatch(2);
+            var barLatch = new TestLatch(2);
+            var barCount = new AtomicCounter(0);
+
+            var broadcast = Sys.ActorOf<BroadcastActor>();
+            var newListenerProps = Props.Create(() => new ListenerActor(fooLatch, barLatch, barCount));
+            var a1 = Sys.ActorOf(newListenerProps);
+            var a2 = Sys.ActorOf(newListenerProps);
+            var a3 = Sys.ActorOf(newListenerProps);
+
+            //act
+            broadcast.Tell(new Listen(a1));
+            broadcast.Tell(new Listen(a2));
+            broadcast.Tell(new Listen(a3));
+
+            broadcast.Tell(new Deafen(a3));
+
+            broadcast.Tell(new WithListeners(a => a.Tell("foo")));
+            broadcast.Tell("foo");
+
+            //assert
+            barLatch.Ready(RemainingOrDefault);
+            Assert.Equal(2, barCount.Current);
+
+            fooLatch.Ready(RemainingOrDefault);
+            foreach (var actor in new[] {a1, a2, a3, broadcast})
+            {
+                Sys.Stop(actor);
+            }
+        }
+        
+        public class BroadcastActor : UntypedActor, IListeners
+        {
+            public BroadcastActor()
+            {
+                Listeners = new ListenerSupport();
+            }
+
+            protected override void OnReceive(object message)
+            {
+                switch (message)
+                {
+                    case ListenerMessage l:
+                        Listeners.ListenerReceive(l);
+                        break;
+                    case string s:
+                        if (s.Equals("foo"))
+                            Listeners.Gossip("bar");
+                        break;
+                }
+            }
+
+            public ListenerSupport Listeners { get; private set; }
+        }
+
+        public class ListenerActor : UntypedActor, IListeners
+        {
+            private readonly TestLatch _fooLatch;
+            private readonly TestLatch _barLatch;
+            private readonly AtomicCounter _barCount;
+
+            public ListenerActor(TestLatch fooLatch, TestLatch barLatch, AtomicCounter barCount)
+            {
+                _fooLatch = fooLatch;
+                _barLatch = barLatch;
+                _barCount = barCount;
+                Listeners = new ListenerSupport();
+            }
+
+            protected override void OnReceive(object message)
+            {
+                if (message is not string str) return;
+                switch (str)
+                {
+                    case "bar":
+                        _barCount.GetAndIncrement();
+                        _barLatch.CountDown();
+                        break;
+                    case "foo":
+                        _fooLatch.CountDown();
+                        break;
+                }
+            }
+
+            public ListenerSupport Listeners { get; }
+        }
+    }
+}
+

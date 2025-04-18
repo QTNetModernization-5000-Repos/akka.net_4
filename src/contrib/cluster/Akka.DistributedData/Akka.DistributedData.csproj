@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <Description>Replicated data using CRDT structures</Description>
+        <TargetFrameworks>$(NetStandardLibVersion);$(NetLibVersion)</TargetFrameworks>
+        <PackageTags>$(AkkaPackageTags);network;cluster;crdt;replication</PackageTags>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <EmbeddedResource Include="reference.conf"/>
+        <ProjectReference Include="..\..\..\core\Akka.Cluster\Akka.Cluster.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Grpc.Tools" Version="$(GrpcToolsVersion)">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
+    </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Access="internal" Include="../../../protobuf/ReplicatedDataMessages.proto" />
+    <Protobuf Access="internal" Include="../../../protobuf/ReplicatorMessages.proto" />
+  </ItemGroup>
+
+</Project>

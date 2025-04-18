@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>$(NetTestVersion)</TargetFramework>
+    <ServerGarbageCollection>true</ServerGarbageCollection>
+    <IsPackable>false</IsPackable>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Akka.Cluster\Akka.Cluster.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NBench" Version="$(NBenchVersion)" />
+  </ItemGroup>
+
+</Project>
